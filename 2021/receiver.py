@@ -34,14 +34,48 @@ class BogoReceiver(Receiver):
         while True:
             try:
                  data = self.simulator.u_receive()  # receive data
-                 self.logger.info("Got data from socket: {}".format(
-                     data.decode('ascii')))  # note that ASCII will only decode bytes in the range 0-127
-	         sys.stdout.write(data)
+                 self.logger.info("Got data from socket: {}".format(data.decode('ascii')))  # note that ASCII will only decode bytes in the range 0-127
+                 sys.stdout.write(data)
                  self.simulator.u_send(BogoReceiver.ACK_DATA)  # send ACK
             except socket.timeout:
                 sys.exit()
 
+class MyReceiver(Receiver):
+    ACK_DATA = bytearray(1)
+    def __init__(self):
+        super(MyReceiver, self).__init__()
+        self.index = 0
+        self.first = True
+    
+    def receive(self):
+        #self.logger.info("Receiving on port: {} and replying with ACK on port: {}".format(self.inbound_port, self.outbound_port))
+        while True:
+            try:
+                self.logger.info("index = {}".format(self.index))
+                if self.index < 0:
+                   self.logger.info("Stopping now") 
+                   sys.exit()
+                   break
+                data = self.simulator.u_receive()  # receive data
+                self.counter = 0
+                real_data,isError,hsh,index = utils.check_checksum(data)
+                self.logger.info("rcvd frame {}".format(data))
+                if self.first and not isError:
+                    self.index = index
+                    self.first = False 
+                if isError or index != self.index:
+                    if index > self.index:
+                        self.simulator.u_send(MyReceiver.ACK_DATA)
+                    self.logger.info("um error data = {} hash = {} emb_index = {} our index = {}".format(real_data,hsh,index,self.index))
+                    continue
+                self.index -= 1024 
+                sys.stdout.write(real_data)
+                self.simulator.u_send(MyReceiver.ACK_DATA)  # send ACK
+            except socket.timeout:
+                pass
+        
+
 if __name__ == "__main__":
     # test out BogoReceiver
-    rcvr = BogoReceiver()
+    rcvr = MyReceiver()
     rcvr.receive()
