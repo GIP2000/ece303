@@ -50,6 +50,7 @@ class MySender(Sender):
     def send(self, data):
         backwards_range = range(utils.get_frame_size(data))
         backwards_range.reverse()
+        self.logger.info(backwards_range)
         data_frames = [utils.add_hash(frame,hashlib.md5(),i) for frame,i in zip(utils.slice_frames(data),backwards_range)]
         self.logger.info("second to last {}".format(data_frames[-2]))
         self.logger.info("last {}".format(data_frames[-1]))

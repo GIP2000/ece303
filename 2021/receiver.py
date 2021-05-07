@@ -58,17 +58,18 @@ class MyReceiver(Receiver):
                    break
                 data = self.simulator.u_receive()  # receive data
                 self.counter = 0
-                real_data,isError,hsh,index = utils.check_checksum(data)
+                real_data,isError,hsh,index = utils.check_checksum(data,self.logger)
+                self.logger.info("rcver index = {}".format(index))
                 self.logger.info("rcvd frame {}".format(data))
                 if self.first and not isError:
                     self.index = index
                     self.first = False 
                 if isError or index != self.index:
-                    if index > self.index:
+                    if index != self.index and not isError:
                         self.simulator.u_send(MyReceiver.ACK_DATA)
                     self.logger.info("um error data = {} hash = {} emb_index = {} our index = {}".format(real_data,hsh,index,self.index))
                     continue
-                self.index -= 1024 
+                self.index -= 1 
                 sys.stdout.write(real_data)
                 self.simulator.u_send(MyReceiver.ACK_DATA)  # send ACK
             except socket.timeout:

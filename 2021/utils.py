@@ -65,19 +65,23 @@ def slice_frames(data_bytes):
     return frames
 
 
-def get_data_and_hash_and_index(data):
+def get_data_and_hash_and_index(data,logger=False):
     l = len(data)
     hsh = data[l-16:l]
     real_data = data[0:l-16]
     l = len(real_data)
     index = real_data[l-4:l]
     real_data = real_data[0:l-4]
+    if logger:
+        logger.info(index)
     index = struct.unpack('>i',bytes(index))[0]
+    if logger:
+        logger.info(index)
     return real_data,hsh,index
 
 
-def check_checksum(data):
-    real_data,hsh,index = get_data_and_hash_and_index(data)
+def check_checksum(data,logger=False):
+    real_data,hsh,index = get_data_and_hash_and_index(data,logger)
     m = hashlib.md5()
     m.update(real_data)
     my_hsh = m.digest()
