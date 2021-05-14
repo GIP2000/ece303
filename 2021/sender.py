@@ -51,7 +51,7 @@ class MySender(Sender):
         super(MySender, self).__init__()
     
     def send(self, data):
-        data_frames = [utils.add_hash(frame,hashlib.md5(),i) for frame,i in zip(utils.slice_frames(data),reversed(range(utils.get_frame_size(data))))]
+        data_frames = [utils.add_hash(frame,i) for frame,i in zip(utils.slice_frames(data),reversed(range(utils.get_frame_size(data))))]
         for frame,i in zip(data_frames,reversed(range(len(data_frames)))):
             while True:
                 try:

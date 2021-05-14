@@ -52,7 +52,6 @@ class MyReceiver(Receiver):
         self.index = 0
         self.first = True
         self.last = False
-        self.fullData = []
     
     def receive(self):
         #self.logger.info("Receiving on port: {} and replying with ACK on port: {}".format(self.inbound_port, self.outbound_port))
