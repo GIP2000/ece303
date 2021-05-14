@@ -10,7 +10,7 @@ import socket
 
 class Receiver(object):
 
-    def __init__(self, inbound_port=50005, outbound_port=50006, timeout=10, debug_level=logging.INFO):
+    def __init__(self, inbound_port=50005, outbound_port=50006, timeout=.01, debug_level=logging.INFO):
         self.logger = utils.Logger(self.__class__.__name__, debug_level)
 
         self.inbound_port = inbound_port
