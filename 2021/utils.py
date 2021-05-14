@@ -19,7 +19,27 @@ class Logger(object):
     def debug(message):
         logging.debug(message)
 
+def add_index(frame, i,logger=False):
+    if logger:
+        logger.info("frame {}".format(frame))
+    new_frame = frame + struct.pack('>i',i)
+    return new_frame
 
+
+def get_ack_and_index(data, logger):
+    l = len(data)
+    if l > 12:
+        return bytearray([0,0,0,0,0,0,0,0]),0
+    # if logger:
+    logger.info("data: {}   length: {}".format(data,l))
+
+    real_data = data[0:8]
+    index = data[8:l]
+    # if logger:
+    logger.info("real_data: {} index: {}".format(real_data,index))
+    index = struct.unpack('>i',bytes(index))[0]
+
+    return real_data,index
 
 def add_hash(frame,m,i,logger=False):
     """
@@ -29,8 +49,8 @@ def add_hash(frame,m,i,logger=False):
     hsh = m.digest()
     new_frame = frame + struct.pack('>i',i) + hsh
     if(logger):
-        real_data,isError,ev_hsh = check_checksum(new_frame)
-        logging.info("real_data == frame ->{} hsh == ev_hsh ->{} isError->{}".format(real_data == frame, hsh == ev_hsh, isError))
+        real_data,isError,ev_hsh,index = check_checksum(new_frame)
+        logger.info("real_data == frame ->{} hsh == ev_hsh ->{} isError->{} real_index == index -> {}".format(real_data == frame, hsh == ev_hsh, isError,index==i))
         # logging.info("hsh ->{} ev_hsh->{}".format(hsh,ev_hsh))
     return new_frame 
 
@@ -57,11 +77,7 @@ def slice_frames(data_bytes):
                 i * 1004 + 1004 
             ]
         )
-    # if len(frames[-1]) < 1008:
-    #     for i in range(len(frames[-1])+1,1009):
-    #         frames[-1] += b'0'
            
-
     return frames
 
 

@@ -8,6 +8,8 @@ import utils
 import sys
 import hashlib
 
+# socket.setdefaulttimeout(0.5)
+
 
 class Sender(object):
 
@@ -43,32 +45,32 @@ class BogoSender(Sender):
                 pass
 
 class MySender(Sender):
+    ACK_DATA = bytearray([1,1,1,1,1,1,1,1])
+    NACK_DATA = bytearray([0,0,0,0,0,0,0,0])
     def __init__(self):
         super(MySender, self).__init__()
-        self.lastError = False
     
     def send(self, data):
-        backwards_range = range(utils.get_frame_size(data))
-        backwards_range.reverse()
-        self.logger.info(backwards_range)
-        data_frames = [utils.add_hash(frame,hashlib.md5(),i) for frame,i in zip(utils.slice_frames(data),backwards_range)]
-        self.logger.info("second to last {}".format(data_frames[-2]))
-        self.logger.info("last {}".format(data_frames[-1]))
-
-        for frame in data_frames:
-            if frame == data_frames[-1]:
-                self.logger.info("sending last packet")
+        data_frames = [utils.add_hash(frame,hashlib.md5(),i) for frame,i in zip(utils.slice_frames(data),reversed(range(utils.get_frame_size(data))))]
+        for frame,i in zip(data_frames,reversed(range(len(data_frames)))):
             while True:
                 try:
-                    if self.lastError:
-                        self.logger.info("resending {}".format(frame))
-                    self.logger.info("sending frame {}".format(frame))
+                    self.logger.info("sent frame {}".format(i))
                     self.simulator.u_send(frame)
-                    ack = self.simulator.u_receive()
-                    break
+                    ack = self.simulator.u_receive() # if nack, send again
+                    real_ack, index = utils.get_ack_and_index(ack, self.logger)
+                    ack_sum_val = sum(list(real_ack))
+                    self.logger.info("ack received ACK is {} and type is {} in list format {} sum format {} and index is {}".format(real_ack,type(real_ack),list(real_ack),ack_sum_val,index))
+                    
+                    if ack_sum_val == 8 and index == i:
+                        self.logger.info("ACK RECEIVED")
+                        break
+                    else:
+                        self.logger.info("NACK RECEIVED")
+                        continue
+                    # break
                 except socket.timeout:
-                    self.logger.info("um error {}".format(frame))
-                    self.lastError = True
+                    self.logger.info("socket timeout")
                     pass
 
 

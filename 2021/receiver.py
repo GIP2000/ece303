@@ -6,6 +6,7 @@ import channelsimulator
 import utils
 import sys
 import socket
+# socket.setdefaulttimeout(0.5)
 
 class Receiver(object):
 
@@ -41,37 +42,57 @@ class BogoReceiver(Receiver):
                 sys.exit()
 
 class MyReceiver(Receiver):
-    ACK_DATA = bytearray(1)
+    # ACK_DATA = b'11111111'
+    # NACK_DATA = b'00000000'
+    ACK_DATA = bytearray([1,1,1,1,1,1,1,1])
+    NACK_DATA = bytearray([0,0,0,0,0,0,0,0])
+
     def __init__(self):
         super(MyReceiver, self).__init__()
         self.index = 0
         self.first = True
+        self.last = False
+        self.fullData = []
     
     def receive(self):
         #self.logger.info("Receiving on port: {} and replying with ACK on port: {}".format(self.inbound_port, self.outbound_port))
         while True:
             try:
-                self.logger.info("index = {}".format(self.index))
-                if self.index < 0:
+                if self.index < 0 or self.last:
                    self.logger.info("Stopping now") 
+                #    sys.stdout.write(self.fullData)
                    sys.exit()
                    break
                 data = self.simulator.u_receive()  # receive data
-                self.counter = 0
-                real_data,isError,hsh,index = utils.check_checksum(data,self.logger)
-                self.logger.info("rcver index = {}".format(index))
-                self.logger.info("rcvd frame {}".format(data))
-                if self.first and not isError:
+                real_data,isError,hsh,index = utils.check_checksum(data)
+                self.logger.info("reciving frame {} current index is {}".format(index,self.index))
+                if self.first and (not isError):
+                    self.logger.info("first has run")
                     self.index = index
                     self.first = False 
-                if isError or index != self.index:
+                if isError or (index != self.index):
                     if index != self.index and not isError:
-                        self.simulator.u_send(MyReceiver.ACK_DATA)
-                    self.logger.info("um error data = {} hash = {} emb_index = {} our index = {}".format(real_data,hsh,index,self.index))
+                        # self.logger.info("ACK being sent {}".format(utils.add_index(MyReceiver.ACK_DATA, index,self.logger)))
+                        myAck = utils.add_index(MyReceiver.ACK_DATA, index)
+                        self.logger.info("ack value being sent from error {}".format(myAck))
+                        self.simulator.u_send(myAck)
+                    else:
+                        # self.logger.info("ACK being sent {}".format(utils.add_index(MyReceiver.NACK_DATA, index,self.logger)))
+                        myNACK = utils.add_index(MyReceiver.NACK_DATA,index)
+                        self.logger.info("nack value being sent {}".format(myNACK))
+                        self.simulator.u_send(myNACK)
+                    # else send nack
                     continue
+                if self.index == 0:
+                    self.logger.info("setting last to true")
+                    self.last = True
                 self.index -= 1 
                 sys.stdout.write(real_data)
-                self.simulator.u_send(MyReceiver.ACK_DATA)  # send ACK
+                # self.fullData += real_data
+                # self.logger.info("ACK being sent {}".format(utils.add_index(MyReceiver.ACK_DATA, index,self.logger)))
+                myAck = utils.add_index(MyReceiver.ACK_DATA, index)
+                self.logger.info("ACK value being sent {}".format(myAck))
+                self.simulator.u_send(myAck)  # send ACK
             except socket.timeout:
                 pass
         
